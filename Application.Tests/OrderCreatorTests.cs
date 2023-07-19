@@ -1,9 +1,9 @@
-﻿using Application.Tests.Infrastructure;
+﻿using Application.Exceptions;
+using Application.Tests.Infrastructure;
 using Client.Dtos;
 using Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using SQLitePCL;
 using Xunit;
 
 namespace Application.Tests;
@@ -32,9 +32,9 @@ public class OrderCreatorTests
         _request = new CreateOrderRequestDto
         {
             FirstName = "FIRSTNAME",
-            LastName ="LASTNAME",
+            LastName = "LASTNAME",
             Address = "ADDRESS",
-            LineItems = new List<LineItemDto>
+            LineItems = new List<LineItemRequestDto>
             {
                 new()
                 {
@@ -100,8 +100,8 @@ public class OrderCreatorTests
         contractUnderTest.Create(_request);
 
         var order = _database.ChangeTracker.Entries<Order>()
-                              .Select(x => x.Entity)
-                              .Single();
+                             .Select(x => x.Entity)
+                             .Single();
 
         Assert.Equal(_request.FirstName, order.FirstName);
         Assert.Equal(_request.LastName, order.LastName);
@@ -156,5 +156,59 @@ public class OrderCreatorTests
 
             Assert.False(savedLineItem.IsExpired);
         }
+    }
+
+    [Fact]
+    public void Create_ReturnsLineItems_InDto()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        var responseDto = contractUnderTest.Create(_request);
+
+        var order = _database.ChangeTracker.Entries<Order>()
+                             .Select(x => x.Entity)
+                             .Single();
+
+        foreach (var requestedItem in _request.LineItems)
+        {
+            var expectedProduct = _seededProducts.Single(x => x.Sku == requestedItem.Sku);
+
+            var responseLineItem = responseDto.LineItems.SingleOrDefault(x => x.Sku == requestedItem.Sku);
+
+            Assert.NotNull(responseLineItem);
+
+            Assert.Equal(requestedItem.Sku, responseLineItem.Sku);
+            Assert.Equal(requestedItem.Quantity, responseLineItem.Quantity);
+            Assert.Equal(expectedProduct.UnitCost, responseLineItem.UnitCost);
+            Assert.Equal(expectedProduct.UnitCost * requestedItem.Quantity, responseLineItem.TotalCost);
+        }
+    }
+
+    [Fact]
+    public void Create_Validate_IfCustomerDetailsMissing_ThrowsValidationException()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        _request.FirstName = string.Empty;
+        _request.LastName = string.Empty;
+        _request.Address = string.Empty;
+
+        var exception = Assert.Throws<ValidationException>(() => contractUnderTest.Create(_request));
+
+        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.FirstName));
+        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.LastName));
+        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.Address));
+    }
+
+    [Fact]
+    public void Create_Validate_IfLineItemsNotPresent_ThrowsValidationException()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        _request.LineItems.Clear();
+
+        var exception = Assert.Throws<ValidationException>(() => contractUnderTest.Create(_request));
+
+        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.LineItems));
     }
 }

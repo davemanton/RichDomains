@@ -1,72 +1,111 @@
-﻿using Client.Dtos;
+﻿using System.Runtime.CompilerServices;
+using Application.Exceptions;
+using Client.Dtos;
 using DataAccess;
 using Domain;
 
-namespace Application
+namespace Application;
+
+public interface ICreateOrders
 {
-    public interface ICreateOrders
+    OrderDto Create(CreateOrderRequestDto request);
+}
+
+public class OrderCreator : ICreateOrders
+{
+    private readonly IValidateOrderRequests _requestValidator;
+    private readonly IRepository<Order> _orderRepo;
+    private readonly IRepository<Product> _productRepo;
+    private readonly IUnitOfWork _unitOfWork;
+
+    public OrderCreator(IValidateOrderRequests requestValidator,
+                        IRepository<Order> orderRepo,
+                        IRepository<Product> productRepo,
+                        IUnitOfWork unitOfWork)
     {
-        OrderDto Create(CreateOrderRequestDto request);
+        _requestValidator = requestValidator;
+
+        _orderRepo = orderRepo;
+        _productRepo = productRepo;
+
+        _unitOfWork = unitOfWork;
     }
 
-    public class OrderCreator : ICreateOrders
+    public OrderDto Create(CreateOrderRequestDto request)
     {
-        private readonly IRepository<Order> _orderRepo;
-        private readonly IRepository<Product> _productRepo;
-        private readonly IUnitOfWork _unitOfWork;
+        if(!_requestValidator.IsValidRequest(request, out var errors))
+            throw new ValidationException("Request failed validation", errors);
 
-        public OrderCreator(IRepository<Order> orderRepo,
-                            IRepository<Product> productRepo,
-                            IUnitOfWork unitOfWork)
+        var skus = request.LineItems.Select(x => x.Sku).ToList();
+
+        var products = _productRepo.Get(x => skus.Contains(x.Sku));
+
+        var order = new Order
         {
-            _orderRepo = orderRepo;
-            _productRepo = productRepo;
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Address = request.Address,
+            LineItems = new List<LineItem>()
+        };
 
-            _unitOfWork = unitOfWork;
+        foreach (var requestedItem in request.LineItems)
+        {
+            var product = products.Single(x => x.Sku == requestedItem.Sku);
+
+            order.LineItems.Add(new LineItem
+            {
+                ProductId = product.ProductId,
+                Sku = product.Sku,
+
+                Quantity = requestedItem.Quantity,
+                UnitCost = product.UnitCost,
+                TotalCost = requestedItem.Quantity * product.UnitCost,
+            });
         }
 
-        public OrderDto Create(CreateOrderRequestDto request)
+        _orderRepo.Insert(order);
+        _unitOfWork.Save();
+
+        return new OrderDto
         {
-            var skus = request.LineItems.Select(x => x.Sku).ToList();
-
-            var products = _productRepo.Get(x => skus.Contains(x.Sku));
-
-            var order = new Order
+            OrderId = order.OrderId,
+            FirstName = order.FirstName,
+            LastName = order.LastName,
+            Address = order.Address,
+            LineItems = order.LineItems.Select(x => new LineItemDto
             {
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Address = request.Address,
-            };
+                Sku = x.Sku,
+                Quantity = x.Quantity,
+                UnitCost = x.UnitCost,
+                TotalCost = x.TotalCost,
+            }).ToList()
+        };
+    }
+}
 
-            order.LineItems = new List<LineItem>();
+public interface IValidateOrderRequests
+{
+    bool IsValidRequest(CreateOrderRequestDto request, out IDictionary<string, string> errors);
+}
 
-            foreach (var requestedItem in request.LineItems)
-            {
-                var product = products.Single(x => x.Sku == requestedItem.Sku);
+internal class OrderRequestValidator : IValidateOrderRequests
+{
+    public bool IsValidRequest(CreateOrderRequestDto request, out IDictionary<string, string> errors)
+    {
+        errors = new Dictionary<string, string>();
 
-                order.LineItems.Add(new LineItem
-                {
-                    ProductId = product.ProductId,
-                    Sku = product.Sku,
+        if(string.IsNullOrWhiteSpace(request.FirstName))
+            errors.Add(nameof(request.FirstName), "First name is required");
 
-                    Quantity = requestedItem.Quantity,
-                    UnitCost = product.UnitCost,
-                    TotalCost = requestedItem.Quantity * product.UnitCost,
+        if (string.IsNullOrWhiteSpace(request.FirstName))
+            errors.Add(nameof(request.LastName), "Last name is required");
 
-                    IsExpired = false,
-                });
-            }
+        if (string.IsNullOrWhiteSpace(request.FirstName))
+            errors.Add(nameof(request.Address), "Address is required");
 
-            _orderRepo.Insert(order);
-            _unitOfWork.Save();
+        if (!request.LineItems.Any())
+            errors.Add(nameof(request.LineItems), "Line Items are required");
 
-            return new OrderDto
-            {
-                OrderId = order.OrderId,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                Address = request.Address,
-            };
-        }
+        return !errors.Any();
     }
 }

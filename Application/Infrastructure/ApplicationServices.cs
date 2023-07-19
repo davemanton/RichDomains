@@ -10,6 +10,10 @@ public class ApplicationServices
             .AddScoped<ICreateOrders, OrderCreator>()
             ;
 
+        services
+            .AddScoped<IValidateOrderRequests, OrderRequestValidator>()
+            ;
+
         return services;
     }
 }
