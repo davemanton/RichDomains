@@ -2,8 +2,14 @@
 
 public class CreateOrderRequestDto
 {
-    public int OrderId { get; set; }
-    public string FirstName { get; set; } = default!;
-    public string LastName { get; set; } = default!;
-    public string Address { get; set; } = default!;
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Address { get; set; }
+    public ICollection<LineItemDto> LineItems { get; set; }
+}
+
+public class LineItemDto
+{
+    public string Sku { get; set; }
+    public int Quantity { get; set; }
 }

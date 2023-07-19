@@ -3,17 +3,20 @@ using Client.Dtos;
 using Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using SQLitePCL;
 using Xunit;
 
 namespace Application.Tests;
 
 public class OrderCreatorTests
 {
-    IServiceProvider _serviceProvider;
+    readonly IServiceProvider _serviceProvider;
 
-    private DbContext _database; 
+    private readonly DbContext _database;
 
     private CreateOrderRequestDto _request;
+
+    private ICollection<Product> _seededProducts;
 
     public OrderCreatorTests()
     {
@@ -23,17 +26,57 @@ public class OrderCreatorTests
         // we sometimes use an in memory database for testing, it's helps us test when complex queries work
         _database = TestDatabaseCreator.StartSeed(_serviceProvider);
 
+        SeedProducts();
+
         // happy path request
         _request = new CreateOrderRequestDto
         {
             FirstName = "FIRSTNAME",
             LastName ="LASTNAME",
-            Address = "ADDRESS"
+            Address = "ADDRESS",
+            LineItems = new List<LineItemDto>
+            {
+                new()
+                {
+                    Sku = "SKU1",
+                    Quantity = 1
+                },
+                new()
+                {
+                    Sku = "SKU2",
+                    Quantity = 2
+                },
+            }
         };
+    }
+
+    private void SeedProducts()
+    {
+        _seededProducts = new List<Product>
+        {
+            new()
+            {
+                ProductId = 10000,
+                Sku = "SKU1",
+                UnitCost = 100,
+                Name = "PRODUCT ONE",
+            },
+            new()
+            {
+                ProductId = 10100,
+                Sku = "SKU2",
+                UnitCost = 200,
+                Name = "PRODUCT TWO",
+            }
+        };
+
+        _database.Set<Product>().AddRange(_seededProducts);
     }
 
     public ICreateOrders GetContractUnderTest()
     {
+        TestDatabaseCreator.EndSeed(_database);
+
         return _serviceProvider.GetRequiredService<ICreateOrders>();
     }
 
@@ -65,4 +108,53 @@ public class OrderCreatorTests
         Assert.Equal(_request.Address, order.Address);
     }
 
+    [Fact]
+    public void Create_ReturnsOrderId_InDto()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        var responseDto = contractUnderTest.Create(_request);
+
+        var order = _database.ChangeTracker.Entries<Order>()
+                             .Select(x => x.Entity)
+                             .Single();
+
+        Assert.Equal(order.OrderId, responseDto.OrderId);
+        Assert.NotEqual(default, responseDto.OrderId);
+    }
+
+    [Fact]
+    public void Create_StoresProductLineItems_InDatabase()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Create(_request);
+
+        var order = _database.ChangeTracker.Entries<Order>()
+                             .Select(x => x.Entity)
+                             .Single();
+
+        var lineItems = _database.ChangeTracker.Entries<LineItem>()
+                                 .Select(x => x.Entity)
+                                 .ToList();
+
+        foreach (var requestedItem in _request.LineItems)
+        {
+            var expectedProduct = _seededProducts.Single(x => x.Sku == requestedItem.Sku);
+
+            var savedLineItem = lineItems.SingleOrDefault(x => x.Sku == requestedItem.Sku);
+            Assert.NotNull(savedLineItem);
+
+            Assert.Equal(order.OrderId, savedLineItem.OrderId);
+            Assert.Equal(expectedProduct.ProductId, savedLineItem.ProductId);
+            Assert.Equal(expectedProduct.Sku, savedLineItem.Sku);
+
+            Assert.Equal(requestedItem.Quantity, savedLineItem.Quantity);
+
+            Assert.Equal(expectedProduct.UnitCost, savedLineItem.UnitCost);
+            Assert.Equal(expectedProduct.UnitCost * requestedItem.Quantity, savedLineItem.TotalCost);
+
+            Assert.False(savedLineItem.IsExpired);
+        }
+    }
 }
