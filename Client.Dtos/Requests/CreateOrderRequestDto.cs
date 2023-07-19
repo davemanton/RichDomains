@@ -7,9 +7,3 @@ public class CreateOrderRequestDto
     public string Address { get; set; }
     public ICollection<LineItemRequestDto> LineItems { get; set; }
 }
-
-public class LineItemRequestDto
-{
-    public string Sku { get; set; }
-    public int Quantity { get; set; }
-}

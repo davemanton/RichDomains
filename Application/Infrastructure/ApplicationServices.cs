@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Application.Validation;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Application.Infrastructure;
 

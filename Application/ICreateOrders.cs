@@ -1,6 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using Application.Exceptions;
+﻿using Application.Exceptions;
+using Application.Validation;
 using Client.Dtos;
+using Client.Dtos.Orders;
 using DataAccess;
 using Domain;
 
@@ -80,32 +81,5 @@ public class OrderCreator : ICreateOrders
                 TotalCost = x.TotalCost,
             }).ToList()
         };
-    }
-}
-
-public interface IValidateOrderRequests
-{
-    bool IsValidRequest(CreateOrderRequestDto request, out IDictionary<string, string> errors);
-}
-
-internal class OrderRequestValidator : IValidateOrderRequests
-{
-    public bool IsValidRequest(CreateOrderRequestDto request, out IDictionary<string, string> errors)
-    {
-        errors = new Dictionary<string, string>();
-
-        if(string.IsNullOrWhiteSpace(request.FirstName))
-            errors.Add(nameof(request.FirstName), "First name is required");
-
-        if (string.IsNullOrWhiteSpace(request.FirstName))
-            errors.Add(nameof(request.LastName), "Last name is required");
-
-        if (string.IsNullOrWhiteSpace(request.FirstName))
-            errors.Add(nameof(request.Address), "Address is required");
-
-        if (!request.LineItems.Any())
-            errors.Add(nameof(request.LineItems), "Line Items are required");
-
-        return !errors.Any();
     }
 }
