@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using Domain;
+﻿using Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System.Data.Common;
@@ -108,11 +107,73 @@ public class OrderDemoContext : DbContext
                                                 .IsUnicode(false);
 
                                           entity.Property(e => e.Percentage)
-                                                .HasColumnType("decimal");
+                                                .HasColumnType("decimal")
+                                                .IsRequired(false);
 
                                           entity.Property(e => e.DiscountType)
                                                 .HasConversion<int>();
                                       });
+
+        modelBuilder.Entity<Product>()
+                    .HasData(new Product
+                             {
+                                 ProductId = 1000,
+                                 Sku = "METCC",
+                                 Name = "Metro Rimless Close Coupled Modern Toilet + Soft Close Seat",
+                                 UnitCost = 189.95m,
+                             },
+                             new Product()
+                             {
+                                 ProductId = 1100,
+                                 Sku = "BTWPC1",
+                                 Name = "Back To Wall Toilet with Soft Close Seat + Concealed Cistern",
+                                 UnitCost = 159.95m,
+                             },
+                             new Product()
+                             {
+                                 ProductId = 1200,
+                                 Sku = "MSPT",
+                                 Name = "Pro 600 Modern Short Projection Toilet + Soft Close Seat",
+                                 UnitCost = 199.95m,
+                             },
+                             new Product()
+                             {
+                                 ProductId = 1300,
+                                 Sku = "ARZBTWCC",
+                                 Name = "Arezzo BTW Close Coupled Toilet + Soft Close Seat",
+                                 UnitCost = 199.95m,
+                             },
+                             new Product()
+                             {
+                                 ProductId = 1400,
+                                 Sku = "VCCWC",
+                                 Name = "Venice Modern Toilet + Soft Close Seat",
+                                 UnitCost = 169.95m,
+                             },
+                             new Product()
+                             {
+                                 ProductId = 100,
+                                 Sku = "ALP350",
+                                 Name = "Alps Modern Rimless Short Projection Toilet + Soft Closing Seat",
+                                 UnitCost = 189.95m,
+                             }
+                            );
+
+        modelBuilder.Entity<Discount>()
+                    .HasData(new Discount()
+                             {
+                                 DiscountId = 2000,
+                                 Code = "DISCOUNT10",
+                                 DiscountType = DiscountType.GeneralDiscount,
+                                 Percentage = 0.1m
+                             },
+                             new Discount()
+                             {
+                                 DiscountId = 2100,
+                                 Code = "BOGOF",
+                                 DiscountType = DiscountType.BuyOneGetOneFree,
+                                 Percentage = null
+                             });
     }
 
     public override void Dispose()

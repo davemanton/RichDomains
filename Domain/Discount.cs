@@ -8,7 +8,7 @@ public class Discount
 
     public DiscountType DiscountType { get; set; }
 
-    public decimal Percentage { get; set; }
+    public decimal? Percentage { get; set; }
 }
 
 public enum DiscountType
