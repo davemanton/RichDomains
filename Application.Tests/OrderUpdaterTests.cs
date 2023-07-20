@@ -16,6 +16,7 @@ public class OrderUpdaterTests
 
     private readonly OrderDto _request;
 
+    private Order _orderToUpdate;
     private ICollection<Product> _seededProducts;
     private ICollection<Discount> _seededDiscounts;
 
@@ -27,8 +28,9 @@ public class OrderUpdaterTests
         // we sometimes use an in memory database for testing, it's helps us test when complex queries work
         _database = TestDatabaseCreator.StartSeed(_serviceProvider);
 
-        SeedProducts();
-        SeedDiscounts();
+        SetupOrder();
+        SetupProducts();
+        SetupDiscounts();
 
         _request = new OrderDto
         {
@@ -56,7 +58,7 @@ public class OrderUpdaterTests
         };
     }
 
-    private void SeedProducts()
+    private void SetupProducts()
     {
         _seededProducts = new List<Product>
         {
@@ -81,12 +83,10 @@ public class OrderUpdaterTests
                 UnitCost = 150,
                 Name = "PRODUCT THREE"
             }
-        };
-
-        _database.Set<Product>().AddRange(_seededProducts);
+        }; _database.Set<Product>().AddRange(_seededProducts);
     }
 
-    private void SeedDiscounts()
+    private void SetupDiscounts()
     {
         _seededDiscounts = new List<Discount>
         {
@@ -106,11 +106,26 @@ public class OrderUpdaterTests
             }
         };
 
-        _database.Set<Discount>().AddRange(_seededDiscounts);
+        
+    }
+
+    private void SetupOrder()
+    {
+        _orderToUpdate = new Order
+        {
+            OrderId = 10000,
+            FirstName = "ORIGINAL_FIRSTNAME",
+            LastName = "ORIGINAL_LASTNAME",
+            Address = "ORIGINAL_ADDRESS",
+        };
     }
 
     public IUpdateOrders GetContractUnderTest()
     {
+        _database.Set<Product>().AddRange(_seededProducts);
+        _database.Set<Discount>().AddRange(_seededDiscounts);
+        _database.Set<Order>().Add(_orderToUpdate);
+
         TestDatabaseCreator.EndSeed(_database);
 
         return _serviceProvider.GetRequiredService<IUpdateOrders>();
@@ -123,8 +138,27 @@ public class OrderUpdaterTests
 
         var responseDto = contractUnderTest.Create(_request);
 
+        Assert.Equal(_request.OrderId, responseDto.OrderId);
         Assert.Equal(_request.FirstName, responseDto.FirstName);
         Assert.Equal(_request.LastName, responseDto.LastName);
         Assert.Equal(_request.Address, responseDto.Address);
+    }
+
+    [Fact]
+    public void Update_StoresCustomerDetails_InDatabase()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Create(_request);
+
+        var order = _database.ChangeTracker.Entries<Order>()
+                             .Select(x => x.Entity)
+                             .Single();
+
+
+        Assert.Equal(_request.OrderId, order.OrderId);
+        Assert.Equal(_request.FirstName, order.FirstName);
+        Assert.Equal(_request.LastName, order.LastName);
+        Assert.Equal(_request.Address, order.Address);
     }
 }
