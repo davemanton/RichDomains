@@ -15,6 +15,7 @@ public class DataAccessServices
         services
             .AddScoped<IRepository<Order>, Repository<Order>>()
             .AddScoped<IRepository<Product>, Repository<Product>>()
+            .AddScoped<IRepository<Discount>, Repository<Discount>>()
             ;
 
         services

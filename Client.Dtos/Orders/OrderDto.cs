@@ -6,6 +6,7 @@
         public string FirstName { get; set; } = default!;
         public string LastName { get; set; } = default!;
         public string Address { get; set; } = default!;
+        public string DiscountCode { get; set; }
         public ICollection<LineItemDto> LineItems { get; set; }
     }
 }

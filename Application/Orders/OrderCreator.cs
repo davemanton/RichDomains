@@ -1,16 +1,12 @@
-﻿using Application.Exceptions;
+﻿using Application.Discounts;
+using Application.Exceptions;
 using Application.Validation;
 using Client.Dtos;
 using Client.Dtos.Orders;
 using DataAccess;
 using Domain;
 
-namespace Application;
-
-public interface ICreateOrders
-{
-    OrderDto Create(CreateOrderRequestDto request);
-}
+namespace Application.Orders;
 
 public class OrderCreator : ICreateOrders
 {
@@ -18,11 +14,13 @@ public class OrderCreator : ICreateOrders
     private readonly IRepository<Order> _orderRepo;
     private readonly IRepository<Product> _productRepo;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICalculateOrderDiscounts _discountCalculator;
 
     public OrderCreator(IValidateOrderRequests requestValidator,
                         IRepository<Order> orderRepo,
                         IRepository<Product> productRepo,
-                        IUnitOfWork unitOfWork)
+                        IUnitOfWork unitOfWork,
+                        ICalculateOrderDiscounts discountCalculator)
     {
         _requestValidator = requestValidator;
 
@@ -30,11 +28,13 @@ public class OrderCreator : ICreateOrders
         _productRepo = productRepo;
 
         _unitOfWork = unitOfWork;
+
+        _discountCalculator = discountCalculator;
     }
 
     public OrderDto Create(CreateOrderRequestDto request)
     {
-        if(!_requestValidator.IsValidRequest(request, out var errors))
+        if (!_requestValidator.IsValidRequest(request, out var errors))
             throw new ValidationException("Request failed validation", errors);
 
         var skus = request.LineItems.Select(x => x.Sku).ToList();
@@ -64,6 +64,9 @@ public class OrderCreator : ICreateOrders
             });
         }
 
+        if (!string.IsNullOrWhiteSpace(request.DiscountCode))
+            _discountCalculator.ApplyDiscounts(request.DiscountCode, order);
+
         _orderRepo.Insert(order);
         _unitOfWork.Save();
 
@@ -73,6 +76,7 @@ public class OrderCreator : ICreateOrders
             FirstName = order.FirstName,
             LastName = order.LastName,
             Address = order.Address,
+            DiscountCode = request.DiscountCode,
             LineItems = order.LineItems.Select(x => new LineItemDto
             {
                 Sku = x.Sku,
