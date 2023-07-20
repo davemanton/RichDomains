@@ -13,10 +13,13 @@ public interface IUpdateOrders
 public class OrderUpdater : IUpdateOrders
 {
     private readonly IRepository<Order> _orderRepo;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public OrderUpdater(IRepository<Order> orderRepo)
+    public OrderUpdater(IRepository<Order> orderRepo,
+                        IUnitOfWork unitOfWork)
     {
         _orderRepo = orderRepo;
+        _unitOfWork = unitOfWork;
     }
 
     public OrderDto Update(OrderDto request)
@@ -31,6 +34,20 @@ public class OrderUpdater : IUpdateOrders
         order.Address = request.Address;
 
         order.LineItems.Clear();
+
+        foreach (var requestedItem in request.LineItems)
+        {
+            order.LineItems.Add(new LineItem
+            {
+                ProductId = requestedItem.ProductId,
+                Sku = requestedItem.Sku,
+                UnitCost = requestedItem.UnitCost,
+                Quantity = requestedItem.Quantity,
+                TotalCost = requestedItem.TotalCost
+            });
+        }
+
+        _unitOfWork.Save();
 
         return new OrderDto
         {

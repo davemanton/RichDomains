@@ -42,6 +42,7 @@ public class OrderUpdaterTests
             {
                 new()
                 {
+                    ProductId = 10000,
                     Sku = "SKU1",
                     UnitCost = 100,
                     TotalCost = 100,
@@ -49,6 +50,7 @@ public class OrderUpdaterTests
                 },
                 new()
                 {
+                    ProductId = 10100,
                     Sku = "SKU2",
                     UnitCost = 200,
                     TotalCost = 400,
@@ -202,7 +204,7 @@ public class OrderUpdaterTests
         {
             var expectedProduct = _seededProducts.Single(x => x.Sku == requestedItem.Sku);
 
-            var savedLineItem = lineItems.SingleOrDefault(x => x.Sku == requestedItem.Sku);
+            var savedLineItem = lineItems.SingleOrDefault(x => x.Sku == requestedItem.Sku && x.OrderId == _request.OrderId);
             Assert.NotNull(savedLineItem);
 
             Assert.Equal(order.OrderId, savedLineItem.OrderId);
