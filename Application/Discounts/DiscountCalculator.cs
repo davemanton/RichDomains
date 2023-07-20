@@ -7,10 +7,13 @@ namespace Application.Discounts;
 internal class DiscountCalculator : ICalculateOrderDiscounts
 {
     private readonly IRepository<Discount> _discountRepo;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public DiscountCalculator(IRepository<Discount> discountRepo)
+    public DiscountCalculator(IRepository<Discount> discountRepo,
+                              IUnitOfWork unitOfWork)
     {
         _discountRepo = discountRepo;
+        _unitOfWork = unitOfWork;
     }
 
     public void ApplyDiscounts(string? discountCode,
@@ -38,6 +41,8 @@ internal class DiscountCalculator : ICalculateOrderDiscounts
             default:
                 throw new ArgumentOutOfRangeException();
         }
+
+        _unitOfWork.Save();
     }
 
     private void ApplyGeneralDiscount(Discount discount,

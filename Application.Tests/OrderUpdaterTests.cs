@@ -1,7 +1,6 @@
 ﻿using Application.Exceptions;
 using Application.Orders;
 using Application.Tests.Infrastructure;
-using Client.Dtos;
 using Client.Dtos.Orders;
 using Domain;
 using Microsoft.EntityFrameworkCore;
@@ -104,7 +103,7 @@ public class OrderUpdaterTests
             new()
             {
                 DiscountId = 10100,
-                Code = "BOGOF",
+                Code = "TEST-BOGOF",
                 DiscountType = DiscountType.BuyOneGetOneFree,
                 Percentage = null
             }
@@ -298,5 +297,145 @@ public class OrderUpdaterTests
         Assert.Equal(discount.Code, responseDto.DiscountCode);
     }
 
+    [Fact]
+    public void Create_Discount_SavesDiscountOnOrder_ToDatabase()
+    {
+        _request.DiscountCode = "TEST-10PERCENT";
 
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Update(_request);
+
+        var order = _database.ChangeTracker.Entries<Order>()
+                             .Select(x => x.Entity)
+                             .Single();
+
+        var discount = _seededDiscounts.Single(x => x.Code == _request.DiscountCode);
+
+        Assert.Equal(discount.DiscountId, order.DiscountId);
+    }
+
+    [Fact]
+    public void Create_Discount_AppliesGlobalDiscountToLineItems_ToDatabase()
+    {
+        _request.DiscountCode = "TEST-10PERCENT";
+
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Update(_request);
+
+        var lineItems = _database.ChangeTracker.Entries<LineItem>()
+                                 .Select(x => x.Entity)
+                                 .ToList();
+
+        var discount = _seededDiscounts.Single(x => x.Code == _request.DiscountCode);
+
+        foreach (var lineItem in lineItems)
+        {
+            var product = _seededProducts.Single(x => x.Sku == lineItem.Sku);
+
+            var discountedCost = product.UnitCost * lineItem.Quantity * (1 - discount.Percentage);
+
+            Assert.Equal(discountedCost, lineItem.TotalCost);
+            Assert.Equal(product.UnitCost, lineItem.UnitCost);
+        }
+    }
+
+    [Fact]
+    public void Create_Discount_AppliesBOGOFDiscountToLineItems_SetValueToHalfIfEven_ToDatabase()
+    {
+        _request.DiscountCode = "TEST-BOGOF";
+
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Update(_request);
+
+        var lineItems = _database.ChangeTracker.Entries<LineItem>()
+                                 .Select(x => x.Entity)
+                                 .ToList();
+
+        foreach (var lineItem in lineItems)
+        {
+            if (lineItem.Quantity % 2 != 0)
+                continue;
+
+            var product = _seededProducts.Single(x => x.Sku == lineItem.Sku);
+
+            var discountedCost = product.UnitCost * lineItem.Quantity / 2;
+
+            Assert.Equal(discountedCost, lineItem.TotalCost);
+        }
+    }
+
+    [Fact]
+    public void Create_Discount_AppliesBOGOFDiscountToLineItems_SetValueToHalfIfEven_ToDto()
+    {
+        _request.DiscountCode = "TEST-BOGOF";
+
+        var contractUnderTest = GetContractUnderTest();
+
+        var responseDto = contractUnderTest.Update(_request);
+
+        foreach (var lineItem in responseDto.LineItems)
+        {
+            if (lineItem.Quantity % 2 != 0)
+                continue;
+
+            var product = _seededProducts.Single(x => x.Sku == lineItem.Sku);
+
+            var discountedCost = product.UnitCost * lineItem.Quantity / 2;
+
+            Assert.Equal(discountedCost, lineItem.TotalCost);
+        }
+    }
+
+    [Fact]
+    public void Create_Discount_AppliesBOGOFDiscountToLineItems_CalculateForEvenAmountWhenOdd_ToDatabase()
+    {
+        _request.DiscountCode = "TEST-BOGOF";
+        _request.LineItems.First().Quantity = 3;
+
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Update(_request);
+
+        var lineItems = _database.ChangeTracker.Entries<LineItem>()
+                                 .Select(x => x.Entity)
+                                 .ToList();
+
+        foreach (var lineItem in lineItems)
+        {
+            if (lineItem.Quantity == 1 || lineItem.Quantity % 2 == 0)
+                continue;
+
+            var product = _seededProducts.Single(x => x.Sku == lineItem.Sku);
+
+            var discountedCost = (product.UnitCost * (lineItem.Quantity - 1) / 2) + product.UnitCost;
+
+            Assert.Equal(discountedCost, lineItem.TotalCost);
+        }
+    }
+
+    [Fact]
+    public void Create_Discount_AppliesBOGOFDiscountToLineItems_CalculateForEvenAmountWhenOdd_ToDto()
+    {
+        _request.DiscountCode = "TEST-BOGOF";
+        _request.LineItems.First().Quantity = 3;
+
+        var contractUnderTest = GetContractUnderTest();
+
+        var responseDto = contractUnderTest.Update(_request);
+
+        foreach (var responseLineItem in responseDto.LineItems)
+        {
+            if (responseLineItem.Quantity == 1 || responseLineItem.Quantity % 2 == 0)
+                continue;
+
+            var product = _seededProducts.Single(x => x.Sku == responseLineItem.Sku);
+
+            var discountedCost = (product.UnitCost * (responseLineItem.Quantity - 1) / 2) + product.UnitCost;
+
+            Assert.Equal(discountedCost, responseLineItem.TotalCost);
+        }
+    }
 }
