@@ -21,7 +21,7 @@ public class TestDatabaseCreator
 
     private static DbConnection CreateInMemoryDatabase()
     {
-        var connection = new SqliteConnection("DataSource=file:");
+        var connection = new SqliteConnection("DataSource=:memory:");
 
         connection.Open();
 
