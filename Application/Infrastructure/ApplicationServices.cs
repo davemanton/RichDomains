@@ -11,6 +11,7 @@ public class ApplicationServices
     {
         services
             .AddScoped<ICreateOrders, OrderCreator>()
+            .AddScoped<IUpdateOrders, OrderUpdater>()
             ;
 
         services
