@@ -1,12 +1,13 @@
 ﻿using Client.Dtos.Orders;
 using DataAccess;
 using Domain;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Orders;
 
 public interface IUpdateOrders
 {
-    OrderDto Create(OrderDto request);
+    OrderDto Update(OrderDto request);
 }
 
 public class OrderUpdater : IUpdateOrders
@@ -18,14 +19,18 @@ public class OrderUpdater : IUpdateOrders
         _orderRepo = orderRepo;
     }
 
-    public OrderDto Create(OrderDto request)
+    public OrderDto Update(OrderDto request)
     {
-        var order = _orderRepo.Get(x => x.OrderId == request.OrderId).SingleOrDefault();
+        var order = _orderRepo.Get(x => x.OrderId == request.OrderId)
+                              .Include(i => i.LineItems)
+                              .SingleOrDefault();
 
         order.OrderId = request.OrderId;
         order.FirstName = request.FirstName;
         order.LastName = request.LastName;
         order.Address = request.Address;
+
+        order.LineItems.Clear();
 
         return new OrderDto
         {

@@ -117,6 +117,27 @@ public class OrderUpdaterTests
             FirstName = "ORIGINAL_FIRSTNAME",
             LastName = "ORIGINAL_LASTNAME",
             Address = "ORIGINAL_ADDRESS",
+            LineItems = new List<LineItem>()
+            {
+                new()
+                {
+                    ProductId = 11000,
+                    OrderId = 10000,
+                    Sku = "SKU3",
+                    UnitCost = 150,
+                    Quantity = 2,
+                    TotalCost = 300,
+                },
+                new()
+                {
+                    ProductId = 10100,
+                    OrderId = 10000,
+                    Sku = "SKU2",
+                    UnitCost = 200,
+                    Quantity = 1,
+                    TotalCost = 400,
+                }
+            }
         };
     }
 
@@ -136,7 +157,7 @@ public class OrderUpdaterTests
     {
         var contractUnderTest = GetContractUnderTest();
 
-        var responseDto = contractUnderTest.Create(_request);
+        var responseDto = contractUnderTest.Update(_request);
 
         Assert.Equal(_request.OrderId, responseDto.OrderId);
         Assert.Equal(_request.FirstName, responseDto.FirstName);
@@ -149,7 +170,7 @@ public class OrderUpdaterTests
     {
         var contractUnderTest = GetContractUnderTest();
 
-        contractUnderTest.Create(_request);
+        contractUnderTest.Update(_request);
 
         var order = _database.ChangeTracker.Entries<Order>()
                              .Select(x => x.Entity)
@@ -160,5 +181,40 @@ public class OrderUpdaterTests
         Assert.Equal(_request.FirstName, order.FirstName);
         Assert.Equal(_request.LastName, order.LastName);
         Assert.Equal(_request.Address, order.Address);
+    }
+
+    [Fact]
+    public void Update_StoresProductLineItems_InDatabase()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Update(_request);
+
+        var order = _database.ChangeTracker.Entries<Order>()
+                             .Select(x => x.Entity)
+                             .Single();
+
+        var lineItems = _database.ChangeTracker.Entries<LineItem>()
+                                 .Select(x => x.Entity)
+                                 .ToList();
+
+        foreach (var requestedItem in _request.LineItems)
+        {
+            var expectedProduct = _seededProducts.Single(x => x.Sku == requestedItem.Sku);
+
+            var savedLineItem = lineItems.SingleOrDefault(x => x.Sku == requestedItem.Sku);
+            Assert.NotNull(savedLineItem);
+
+            Assert.Equal(order.OrderId, savedLineItem.OrderId);
+            Assert.Equal(expectedProduct.ProductId, savedLineItem.ProductId);
+            Assert.Equal(expectedProduct.Sku, savedLineItem.Sku);
+
+            Assert.Equal(requestedItem.Quantity, savedLineItem.Quantity);
+
+            Assert.Equal(expectedProduct.UnitCost, savedLineItem.UnitCost);
+            Assert.Equal(expectedProduct.UnitCost * requestedItem.Quantity, savedLineItem.TotalCost);
+
+            Assert.False(savedLineItem.IsExpired);
+        }
     }
 }
