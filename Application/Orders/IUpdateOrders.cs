@@ -1,4 +1,5 @@
-﻿using Client.Dtos.Orders;
+﻿using Application.Exceptions;
+using Client.Dtos.Orders;
 using DataAccess;
 using Domain;
 using Microsoft.EntityFrameworkCore;
@@ -24,9 +25,16 @@ public class OrderUpdater : IUpdateOrders
 
     public OrderDto Update(OrderDto request)
     {
+        var errors = Validate(request);
+        if (errors.Any())
+            throw new ValidationException("Validation Failed", errors);
+            
         var order = _orderRepo.Get(x => x.OrderId == request.OrderId)
                               .Include(i => i.LineItems)
                               .SingleOrDefault();
+
+        if (order is null)
+            throw new NotFoundException("Order not found");
 
         order.OrderId = request.OrderId;
         order.FirstName = request.FirstName;
@@ -55,6 +63,33 @@ public class OrderUpdater : IUpdateOrders
             FirstName = request.FirstName,
             LastName = request.LastName,
             Address = request.Address,
+            DiscountCode = request.DiscountCode,
+            LineItems = order.LineItems.Select(x => new LineItemDto
+            {
+                Sku = x.Sku,
+                Quantity = x.Quantity,
+                UnitCost = x.UnitCost,
+                TotalCost = x.TotalCost,
+            }).ToList()
         };
+    }
+
+    public IDictionary<string, string> Validate(OrderDto order)
+    {
+        var errors = new Dictionary<string, string>();
+
+        if(string.IsNullOrEmpty(order.FirstName))
+            errors.Add("FIRST NAME", "You must have a first name");
+
+        if (string.IsNullOrEmpty(order.LastName))
+            errors.Add("LAST NAME", "You must have a last name");
+
+        if (string.IsNullOrEmpty(order.Address))
+            errors.Add("ADDRESS", "You must have an address");
+
+        if(!order.LineItems.Any())
+            errors.Add("LINE ITEMS", "There are no items in your order");
+
+        return errors;
     }
 }

@@ -1,5 +1,7 @@
-﻿using Application.Orders;
+﻿using Application.Exceptions;
+using Application.Orders;
 using Application.Tests.Infrastructure;
+using Client.Dtos;
 using Client.Dtos.Orders;
 using Domain;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +18,7 @@ public class OrderUpdaterTests
 
     private readonly OrderDto _request;
 
-    private Order _orderToUpdate;
+    private Order? _orderToUpdate;
     private ICollection<Product> _seededProducts;
     private ICollection<Discount> _seededDiscounts;
 
@@ -102,7 +104,7 @@ public class OrderUpdaterTests
             new()
             {
                 DiscountId = 10100,
-                Code = "TEST-BOGOF",
+                Code = "BOGOF",
                 DiscountType = DiscountType.BuyOneGetOneFree,
                 Percentage = null
             }
@@ -147,7 +149,9 @@ public class OrderUpdaterTests
     {
         _database.Set<Product>().AddRange(_seededProducts);
         _database.Set<Discount>().AddRange(_seededDiscounts);
-        _database.Set<Order>().Add(_orderToUpdate);
+        
+        if(_orderToUpdate is not null ) 
+            _database.Set<Order>().Add(_orderToUpdate);
 
         TestDatabaseCreator.EndSeed(_database);
 
@@ -219,4 +223,80 @@ public class OrderUpdaterTests
             Assert.False(savedLineItem.IsExpired);
         }
     }
+
+    [Fact]
+    public void Update_ReturnsLineItems_InDto()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        var responseDto = contractUnderTest.Update(_request);
+
+        foreach (var requestedItem in _request.LineItems)
+        {
+            var expectedProduct = _seededProducts.Single(x => x.Sku == requestedItem.Sku);
+
+            var responseLineItem = responseDto.LineItems.SingleOrDefault(x => x.Sku == requestedItem.Sku);
+
+            Assert.NotNull(responseLineItem);
+
+            Assert.Equal(requestedItem.Sku, responseLineItem.Sku);
+            Assert.Equal(requestedItem.Quantity, responseLineItem.Quantity);
+            Assert.Equal(expectedProduct.UnitCost, responseLineItem.UnitCost);
+            Assert.Equal(expectedProduct.UnitCost * requestedItem.Quantity, responseLineItem.TotalCost);
+        }
+    }
+
+    [Fact]
+    public void Update_ThrowsNotFoundException_IfOrderNotPresentInDatabase()
+    {
+        _orderToUpdate = null;
+
+        var contractUnderTest = GetContractUnderTest();
+
+        Assert.Throws<NotFoundException>(() => { contractUnderTest.Update(_request); });
+    }
+
+    [Fact]
+    public void Create_Validate_IfCustomerDetailsMissing_ThrowsValidationException()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        _request.FirstName = string.Empty;
+        _request.LastName = string.Empty;
+        _request.Address = string.Empty;
+
+        var exception = Assert.Throws<ValidationException>(() => contractUnderTest.Update(_request));
+
+        Assert.Contains(exception.Errors, error => error.Key == "FIRST NAME");
+        Assert.Contains(exception.Errors, error => error.Key == "LAST NAME");
+        Assert.Contains(exception.Errors, error => error.Key == "ADDRESS");
+    }
+
+    [Fact]
+    public void Create_Validate_IfRequestDoesntContainItems_ThrowsValidationException()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        _request.LineItems.Clear();
+
+        var exception = Assert.Throws<ValidationException>(() => contractUnderTest.Update(_request));
+
+        Assert.Contains(exception.Errors, error => error.Key == "LINE ITEMS");
+    }
+
+    [Fact]
+    public void Create_Discount_ReturnsDiscountCode_InDto()
+    {
+        _request.DiscountCode = "TEST-10PERCENT";
+
+        var contractUnderTest = GetContractUnderTest();
+
+        var responseDto = contractUnderTest.Update(_request);
+
+        var discount = _seededDiscounts.Single(x => x.Code == _request.DiscountCode);
+
+        Assert.Equal(discount.Code, responseDto.DiscountCode);
+    }
+
+
 }
