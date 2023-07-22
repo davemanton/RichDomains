@@ -129,6 +129,11 @@ public class OrderDemoContext : DbContext
                                                 .HasConversion<int>();
                                       });
 
+        modelBuilder.Entity<Discount>()
+                    .HasDiscriminator(x => x.DiscountType)
+                    .HasValue<GeneralDiscount>(DiscountType.GeneralDiscount)
+                    .HasValue<BuyOneGetOneFreeDiscount>(DiscountType.BuyOneGetOneFree);
+
         modelBuilder.Entity<Product>()
                     .HasData(new Product
                              {
@@ -174,21 +179,11 @@ public class OrderDemoContext : DbContext
                              }
                             );
 
-        modelBuilder.Entity<Discount>()
-                    .HasData(new Discount()
-                             {
-                                 DiscountId = 2000,
-                                 Code = "DISCOUNT10",
-                                 DiscountType = DiscountType.GeneralDiscount,
-                                 Percentage = 0.1m
-                             },
-                             new Discount()
-                             {
-                                 DiscountId = 2100,
-                                 Code = "BOGOF",
-                                 DiscountType = DiscountType.BuyOneGetOneFree,
-                                 Percentage = null
-                             });
+        modelBuilder.Entity<GeneralDiscount>()
+                    .HasData(new GeneralDiscount(2000, "DISCOUNT10", 0.1m));
+
+        modelBuilder.Entity<BuyOneGetOneFreeDiscount>()
+                    .HasData(new BuyOneGetOneFreeDiscount(2100, "BOGOF"));
     }
 
     

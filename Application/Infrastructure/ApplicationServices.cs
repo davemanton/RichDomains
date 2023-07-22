@@ -1,5 +1,4 @@
-﻿using Application.Discounts;
-using Application.Orders;
+﻿using Application.Orders;
 using Application.Validation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,10 +16,6 @@ public class ApplicationServices
 
         services
             .AddScoped<IValidateOrderRequests, OrderRequestValidator>()
-            ;
-
-        services
-            .AddScoped<ICalculateOrderDiscounts, DiscountCalculator>()
             ;
 
         return services;

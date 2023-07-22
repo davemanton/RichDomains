@@ -2,21 +2,40 @@
 
 public class LineItem
 {
-    public int OrderId { get; set; }
-    public int ProductId { get; set; }
+    private LineItem() {}
 
-    public DateTime Created { get; set; }
-    public DateTime LastModified { get; set; }
+    internal LineItem(Order order, SetLineItemInput input)
+    {
+        Order = order;
+        OrderId = order.OrderId;
 
-    public string Sku { get; set; } = default!;
+        Product = input.Product;
+        ProductId = input.Product.ProductId;
 
-    public bool IsExpired { get; set; }
+        Created = DateTime.UtcNow;
+        LastModified = DateTime.UtcNow;
 
-    public int Quantity { get; set; }
-    public decimal UnitCost { get; set; }
-    public decimal TotalCost { get; set; }
+        Quantity = input.Quantity;
 
-    public Order Order { get; set; } = default!;
-    public Product Product { get; set; } = default!;
-    
+        Sku = Product.Sku;
+        UnitCost = Product.UnitCost;
+        TotalCost = UnitCost * Quantity;
+    }
+
+    public int OrderId { get; private init; }
+    public int ProductId { get; private init; }
+
+    public DateTime Created { get; private init; }
+    public DateTime LastModified { get; private set; }
+
+    public string Sku { get; private init; } = default!;
+
+    public bool IsExpired { get; private set; }
+
+    public int Quantity { get; private set; }
+    public decimal UnitCost { get; private set; }
+    public decimal TotalCost { get; internal set; }
+
+    public Order Order { get; private init; } = default!;
+    public Product Product { get; private init; } = default!;
 }

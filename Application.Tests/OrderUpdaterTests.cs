@@ -92,24 +92,10 @@
 //    private void SetupDiscounts()
 //    {
 //        _seededDiscounts = new List<Discount>
-//        {
-//            new()
-//            {
-//                DiscountId = 10000,
-//                Code = "TEST-10PERCENT",
-//                DiscountType = DiscountType.GeneralDiscount,
-//                Percentage = 0.1m
-//            },
-//            new()
-//            {
-//                DiscountId = 10100,
-//                Code = "TEST-BOGOF",
-//                DiscountType = DiscountType.BuyOneGetOneFree,
-//                Percentage = null
-//            }
-//        };
-
-        
+          //{
+          //      new GeneralDiscount(10000, "TEST-10PERCENT", 0.1m),
+          //      new BuyOneGetOneFreeDiscount(10100, "TEST-BOGOF")
+          //};
 //    }
 
 //    private void SetupOrder()
@@ -148,7 +134,7 @@
 //    {
 //        _database.Set<Product>().AddRange(_seededProducts);
 //        _database.Set<Discount>().AddRange(_seededDiscounts);
-        
+
 //        if(_orderToUpdate is not null ) 
 //            _database.Set<Order>().Add(_orderToUpdate);
 

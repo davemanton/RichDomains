@@ -1,5 +1,4 @@
-﻿using Application.Discounts;
-using Application.Exceptions;
+﻿using Application.Exceptions;
 using Application.Validation;
 using Client.Dtos;
 using Client.Dtos.Orders;
@@ -13,23 +12,22 @@ public class OrderCreator : ICreateOrders
     private readonly IValidateOrderRequests _requestValidator;
     private readonly IRepository<Order> _orderRepo;
     private readonly IRepository<Product> _productRepo;
+    private readonly IRepository<Discount> _discountRepo;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ICalculateOrderDiscounts _discountCalculator;
 
     public OrderCreator(IValidateOrderRequests requestValidator,
                         IRepository<Order> orderRepo,
                         IRepository<Product> productRepo,
-                        IUnitOfWork unitOfWork,
-                        ICalculateOrderDiscounts discountCalculator)
+                        IRepository<Discount> discountRepo,
+                        IUnitOfWork unitOfWork)
     {
         _requestValidator = requestValidator;
 
         _orderRepo = orderRepo;
         _productRepo = productRepo;
+        _discountRepo = discountRepo;
 
         _unitOfWork = unitOfWork;
-
-        _discountCalculator = discountCalculator;
     }
 
     public OrderDto Create(CreateOrderRequestDto request)
@@ -38,39 +36,24 @@ public class OrderCreator : ICreateOrders
             throw new ValidationException("Request failed validation", errors);
 
         var skus = request.LineItems.Select(x => x.Sku).ToList();
-
         var products = _productRepo.Get(x => skus.Contains(x.Sku));
 
-        var order = new Order
-        {
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Address = request.Address,
-            Created = DateTime.UtcNow,
-            LastModified = DateTime.UtcNow,
-            LineItems = new List<LineItem>()
-        };
+        var setLineItemInputs = request.LineItems.Join(products,
+                                                       dto => dto.Sku,
+                                                       product => product.Sku,
+                                                       (dto, product) => new SetLineItemInput
+                                                       {
+                                                           Quantity = dto.Quantity,
+                                                           Product = product
+                                                       }).ToList();
 
-        foreach (var requestedItem in request.LineItems)
-        {
-            var product = products.Single(x => x.Sku == requestedItem.Sku);
+        var discount = _discountRepo.Get(x => x.Code == request.DiscountCode).SingleOrDefault();
 
-            order.LineItems.Add(new LineItem
-            {
-                ProductId = product.ProductId,
-
-                Created = DateTime.UtcNow,
-                LastModified = DateTime.UtcNow,
-
-                Sku = product.Sku,
-                Quantity = requestedItem.Quantity,
-                UnitCost = product.UnitCost,
-                TotalCost = requestedItem.Quantity * product.UnitCost,
-            });
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.DiscountCode))
-            _discountCalculator.ApplyDiscounts(request.DiscountCode, order);
+        var order = new Order(request.FirstName,
+                              request.LastName, 
+                              request.Address,
+                              discount,
+                              setLineItemInputs);
 
         _orderRepo.Insert(order);
         _unitOfWork.Save();

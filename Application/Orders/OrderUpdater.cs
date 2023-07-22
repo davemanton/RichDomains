@@ -1,5 +1,4 @@
-﻿using Application.Discounts;
-using Application.Exceptions;
+﻿using Application.Exceptions;
 using Client.Dtos.Orders;
 using DataAccess;
 using Domain;
@@ -11,15 +10,12 @@ public class OrderUpdater : IUpdateOrders
 {
     private readonly IRepository<Order> _orderRepo;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly ICalculateOrderDiscounts _discountCalculator;
 
     public OrderUpdater(IRepository<Order> orderRepo,
-                        IUnitOfWork unitOfWork,
-                        ICalculateOrderDiscounts discountCalculator)
+                        IUnitOfWork unitOfWork)
     {
         _orderRepo = orderRepo;
         _unitOfWork = unitOfWork;
-        _discountCalculator = discountCalculator;
     }
 
     public OrderDto Update(OrderDto request)
