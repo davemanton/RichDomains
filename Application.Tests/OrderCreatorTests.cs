@@ -246,9 +246,9 @@ public class OrderCreatorTests
 
         var exception = Assert.Throws<ValidationException>(() => contractUnderTest.Create(_request));
 
-        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.FirstName));
-        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.LastName));
-        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.Address));
+        Assert.Contains(exception.Errors, error => error.Key == "firstName");
+        Assert.Contains(exception.Errors, error => error.Key == "lastName");
+        Assert.Contains(exception.Errors, error => error.Key == "address");
     }
 
     [Fact]
@@ -260,7 +260,7 @@ public class OrderCreatorTests
 
         var exception = Assert.Throws<ValidationException>(() => contractUnderTest.Create(_request));
 
-        Assert.Contains(exception.Errors, error => error.Key == nameof(CreateOrderRequestDto.LineItems));
+        Assert.Contains(exception.Errors, error => error.Key == "lineItems");
     }
 
     [Fact]
