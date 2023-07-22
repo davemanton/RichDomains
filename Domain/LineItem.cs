@@ -34,8 +34,24 @@ public class LineItem
 
     public int Quantity { get; private set; }
     public decimal UnitCost { get; private set; }
-    public decimal TotalCost { get; internal set; }
+    public decimal TotalCost { get; private set; }
 
     public Order Order { get; private init; } = default!;
     public Product Product { get; private init; } = default!;
+
+    internal void Update(SetLineItemInput input)
+    {
+        throw new NotImplementedException();
+
+        // TODO: Expire if not required
+        // Don't forget to set last modified
+    }
+
+    internal void UpdateTotal(decimal totalCost)
+    {
+        TotalCost = totalCost;
+        UpdateLastModified();
+    }
+
+    private void UpdateLastModified() => LastModified = DateTime.UtcNow;
 }

@@ -38,7 +38,7 @@ public class GeneralDiscount : Discount
     internal override void Calculate(Order order)
     {
         foreach (var lineItem in order.LineItems)
-            lineItem.TotalCost *= (1 - Percentage.GetValueOrDefault());
+            lineItem.UpdateTotal(lineItem.TotalCost * (1 - Percentage.GetValueOrDefault()));
     }
 }
 
@@ -55,9 +55,9 @@ public class BuyOneGetOneFreeDiscount : Discount
         foreach (var lineItem in order.LineItems.Where(x => x.Quantity > 1))
         {
             if (lineItem.Quantity % 2 == 0)
-                lineItem.TotalCost *= 0.5m;
+                lineItem.UpdateTotal(lineItem.TotalCost * 0.5m);
             else if (lineItem.Quantity > 1)
-                lineItem.TotalCost = lineItem.UnitCost + (lineItem.Quantity - 1) * lineItem.UnitCost / 2;
+                lineItem.UpdateTotal(lineItem.UnitCost + (lineItem.Quantity - 1) * lineItem.UnitCost / 2);
         }
     }
 }
