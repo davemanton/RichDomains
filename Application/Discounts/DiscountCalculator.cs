@@ -42,7 +42,7 @@ internal class DiscountCalculator : ICalculateOrderDiscounts
                 throw new ArgumentOutOfRangeException();
         }
 
-        _unitOfWork.Save();
+        //_unitOfWork.Save();
     }
 
     private void ApplyGeneralDiscount(Discount discount,

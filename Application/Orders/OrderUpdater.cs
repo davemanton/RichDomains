@@ -24,62 +24,63 @@ public class OrderUpdater : IUpdateOrders
 
     public OrderDto Update(OrderDto request)
     {
-        var errors = Validate(request);
-        if (errors.Any())
-            throw new ValidationException("Validation Failed", errors);
+        throw new NotImplementedException();
+        //var errors = Validate(request);
+        //if (errors.Any())
+        //    throw new ValidationException("Validation Failed", errors);
             
-        var order = _orderRepo.Get(x => x.OrderId == request.OrderId)
-                              .Include(i => i.LineItems)
-                              .SingleOrDefault();
+        //var order = _orderRepo.Get(x => x.OrderId == request.OrderId)
+        //                      .Include(i => i.LineItems)
+        //                      .SingleOrDefault();
 
-        if (order is null)
-            throw new NotFoundException("Order not found");
+        //if (order is null)
+        //    throw new NotFoundException("Order not found");
 
-        order.OrderId = request.OrderId;
-        order.Created = request.Created;
-        order.LastModified = DateTime.Now;
+        //order.OrderId = request.OrderId;
+        //order.Created = request.Created;
+        //order.LastModified = DateTime.Now;
         
-        order.FirstName = request.FirstName;
-        order.LastName = request.LastName;
-        order.Address = request.Address;
+        //order.FirstName = request.FirstName;
+        //order.LastName = request.LastName;
+        //order.Address = request.Address;
 
-        order.LineItems.Clear();
+        //order.LineItems.Clear();
 
-        foreach (var requestedItem in request.LineItems)
-        {
-            order.LineItems.Add(new LineItem
-            {
-                ProductId = requestedItem.ProductId,
-                Sku = requestedItem.Sku,
-                UnitCost = requestedItem.UnitCost,
-                Quantity = requestedItem.Quantity,
-                TotalCost = requestedItem.TotalCost
-            });
-        }
+        //foreach (var requestedItem in request.LineItems)
+        //{
+        //    order.LineItems.Add(new LineItem
+        //    {
+        //        ProductId = requestedItem.ProductId,
+        //        Sku = requestedItem.Sku,
+        //        UnitCost = requestedItem.UnitCost,
+        //        Quantity = requestedItem.Quantity,
+        //        TotalCost = requestedItem.TotalCost
+        //    });
+        //}
 
-        _unitOfWork.Save();
+        //_unitOfWork.Save();
 
-        if(!string.IsNullOrEmpty(request.DiscountCode))
-            _discountCalculator.ApplyDiscounts(request.DiscountCode, order);
+        //if(!string.IsNullOrEmpty(request.DiscountCode))
+        //    _discountCalculator.ApplyDiscounts(request.DiscountCode, order);
 
-        return new OrderDto
-        {
-            OrderId = request.OrderId,
-            Created = request.Created,
-            LastModified = request.LastModified,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            Address = request.Address,
-            DiscountCode = request.DiscountCode,
-            LineItems = order.LineItems.Select(x => new LineItemDto
-            {
-                ProductId = x.ProductId,
-                Sku = x.Sku,
-                Quantity = x.Quantity,
-                UnitCost = x.UnitCost,
-                TotalCost = x.TotalCost,
-            }).ToList()
-        };
+        //return new OrderDto
+        //{
+        //    OrderId = request.OrderId,
+        //    Created = request.Created,
+        //    LastModified = request.LastModified,
+        //    FirstName = request.FirstName,
+        //    LastName = request.LastName,
+        //    Address = request.Address,
+        //    DiscountCode = request.DiscountCode,
+        //    LineItems = order.LineItems.Select(x => new LineItemDto
+        //    {
+        //        ProductId = x.ProductId,
+        //        Sku = x.Sku,
+        //        Quantity = x.Quantity,
+        //        UnitCost = x.UnitCost,
+        //        TotalCost = x.TotalCost,
+        //    }).ToList()
+        //};
     }
 
     public IDictionary<string, string> Validate(OrderDto order)
