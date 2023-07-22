@@ -10,6 +10,7 @@ public class ApplicationServices
     public static IServiceCollection Resolve(IServiceCollection services)
     {
         services
+            .AddScoped<IReadOrders, OrderReader>()
             .AddScoped<ICreateOrders, OrderCreator>()
             .AddScoped<IUpdateOrders, OrderUpdater>()
             ;
