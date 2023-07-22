@@ -2,99 +2,82 @@
 using Client.Dtos.Orders;
 using DataAccess;
 using Domain;
+using Domain.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Application.Orders;
 
 public class OrderUpdater : IUpdateOrders
 {
+    private readonly IValidateOrders _orderValidator;
     private readonly IRepository<Order> _orderRepo;
+    private readonly IRepository<Product> _productRepo;
+    private readonly IRepository<Discount> _discountRepo;
     private readonly IUnitOfWork _unitOfWork;
 
     public OrderUpdater(IRepository<Order> orderRepo,
-                        IUnitOfWork unitOfWork)
+                        IUnitOfWork unitOfWork,
+                        IValidateOrders orderValidator,
+                        IRepository<Product> productRepo,
+                        IRepository<Discount> discountRepo)
     {
         _orderRepo = orderRepo;
         _unitOfWork = unitOfWork;
+        _orderValidator = orderValidator;
+        _productRepo = productRepo;
+        _discountRepo = discountRepo;
     }
 
     public OrderDto Update(OrderDto request)
     {
-        throw new NotImplementedException();
-        //var errors = Validate(request);
-        //if (errors.Any())
-        //    throw new ValidationException("Validation Failed", errors);
-            
-        //var order = _orderRepo.Get(x => x.OrderId == request.OrderId)
-        //                      .Include(i => i.LineItems)
-        //                      .SingleOrDefault();
+        var order = _orderRepo.Get(x => x.OrderId == request.OrderId)
+                              .Include(i => i.LineItems)
+                              .SingleOrDefault();
 
-        //if (order is null)
-        //    throw new NotFoundException("Order not found");
+        if (order is null)
+            throw new NotFoundException("Order not found");
 
-        //order.OrderId = request.OrderId;
-        //order.Created = request.Created;
-        //order.LastModified = DateTime.Now;
-        
-        //order.FirstName = request.FirstName;
-        //order.LastName = request.LastName;
-        //order.Address = request.Address;
+        var skus = request.LineItems.Select(x => x.Sku).ToList();
+        var products = _productRepo.Get(x => skus.Contains(x.Sku));
 
-        //order.LineItems.Clear();
+        var setLineItemInputs = request.LineItems.Join(products,
+                                                       dto => dto.Sku,
+                                                       product => product.Sku,
+                                                       (dto, product) => new SetLineItemInput
+                                                       {
+                                                           Quantity = dto.Quantity,
+                                                           Product = product
+                                                       }).ToList();
 
-        //foreach (var requestedItem in request.LineItems)
-        //{
-        //    order.LineItems.Add(new LineItem
-        //    {
-        //        ProductId = requestedItem.ProductId,
-        //        Sku = requestedItem.Sku,
-        //        UnitCost = requestedItem.UnitCost,
-        //        Quantity = requestedItem.Quantity,
-        //        TotalCost = requestedItem.TotalCost
-        //    });
-        //}
+        var discount = _discountRepo.Get(x => x.Code == request.DiscountCode).SingleOrDefault();
 
-        //_unitOfWork.Save();
+        order.Update(request.FirstName, request.LastName, request.Address, 
+                     discount, 
+                     setLineItemInputs, 
+                     _orderValidator, out var errors);
 
-        //if(!string.IsNullOrEmpty(request.DiscountCode))
-        //    _discountCalculator.ApplyDiscounts(request.DiscountCode, order);
+        if (errors.Any())
+            throw new ValidationException("Order failed validation", errors);
 
-        //return new OrderDto
-        //{
-        //    OrderId = request.OrderId,
-        //    Created = request.Created,
-        //    LastModified = request.LastModified,
-        //    FirstName = request.FirstName,
-        //    LastName = request.LastName,
-        //    Address = request.Address,
-        //    DiscountCode = request.DiscountCode,
-        //    LineItems = order.LineItems.Select(x => new LineItemDto
-        //    {
-        //        ProductId = x.ProductId,
-        //        Sku = x.Sku,
-        //        Quantity = x.Quantity,
-        //        UnitCost = x.UnitCost,
-        //        TotalCost = x.TotalCost,
-        //    }).ToList()
-        //};
-    }
+        _unitOfWork.Save();
 
-    public IDictionary<string, string> Validate(OrderDto order)
-    {
-        var errors = new Dictionary<string, string>();
-
-        if(string.IsNullOrEmpty(order.FirstName))
-            errors.Add("FIRST NAME", "You must have a first name");
-
-        if (string.IsNullOrEmpty(order.LastName))
-            errors.Add("LAST NAME", "You must have a last name");
-
-        if (string.IsNullOrEmpty(order.Address))
-            errors.Add("ADDRESS", "You must have an address");
-
-        if(!order.LineItems.Any())
-            errors.Add("LINE ITEMS", "There are no items in your order");
-
-        return errors;
+        return new OrderDto
+        {
+            OrderId = request.OrderId,
+            Created = request.Created,
+            LastModified = request.LastModified,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Address = request.Address,
+            DiscountCode = request.DiscountCode,
+            LineItems = order.LineItems.Select(x => new LineItemDto
+            {
+                ProductId = x.ProductId,
+                Sku = x.Sku,
+                Quantity = x.Quantity,
+                UnitCost = x.UnitCost,
+                TotalCost = x.TotalCost,
+            }).ToList()
+        };
     }
 }

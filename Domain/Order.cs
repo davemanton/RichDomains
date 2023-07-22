@@ -1,5 +1,4 @@
 ﻿using Domain.Services;
-using System.Net;
 
 namespace Domain;
 
@@ -64,10 +63,14 @@ public class Order
                        IValidateOrders validator,
                        out IDictionary<string, string> errors)
     {
-        throw new NotImplementedException();
+        if (!validator.Validate(firstName, lastName, address, lineItems, out errors))
+            return;
 
-        // ensure discount is calculated after line items are set
-        // Don't forget last modified
+        SetCustomerDetails(firstName, lastName, address);
+        SetLineItems(lineItems);
+        SetDiscount(discount);
+        
+        LastModified = DateTime.UtcNow;
     }
 
     private void SetCustomerDetails(string firstName,
@@ -79,10 +82,22 @@ public class Order
         Address = address;
     }
 
-    private void SetLineItems(ICollection<SetLineItemInput> lineItems)
+    private void SetLineItems(ICollection<SetLineItemInput> lineItemInputs)
     {
-        // TODO: ensure isExpired is set on lineItems that aren't required any more when doing update
-        _lineItems = lineItems.Select(input => new LineItem(this, input)).ToHashSet();
+        var lineItemsToExpire = _lineItems.ExceptBy(lineItemInputs.Select(x => x.Product.Sku), x => x.Sku);
+
+        foreach (var lineItem in lineItemsToExpire)
+            lineItem.Expire();
+
+        foreach (var lineItemInput in lineItemInputs)
+        {
+            var lineItem = _lineItems.SingleOrDefault(x => x.Sku == lineItemInput.Product.Sku);
+
+            if (lineItem is null)
+                _lineItems.Add(new LineItem(this, lineItemInput));
+            else
+                lineItem.Update(lineItemInput.Quantity);
+        }
     }
 
     private void SetDiscount(Discount? discount)

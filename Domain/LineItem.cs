@@ -39,17 +39,28 @@ public class LineItem
     public Order Order { get; private init; } = default!;
     public Product Product { get; private init; } = default!;
 
-    internal void Update(SetLineItemInput input)
+    internal void Update(int quantity)
     {
-        throw new NotImplementedException();
+        if (Quantity == quantity)
+            return;
 
-        // TODO: Expire if not required
-        // Don't forget to set last modified
+        Quantity = quantity;
+        TotalCost = UnitCost * Quantity;
+
+        UpdateLastModified();
     }
 
     internal void UpdateTotal(decimal totalCost)
     {
         TotalCost = totalCost;
+
+        UpdateLastModified();
+    }
+
+    internal void Expire()
+    {
+        IsExpired = true;
+
         UpdateLastModified();
     }
 
