@@ -4,6 +4,7 @@ using DataAccess.Infrastructure;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Data.Common;
+using Domain.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 ApplicationServices.Resolve(builder.Services);
-
+DomainServices.Resolve(builder.Services);
 
 builder.Services.AddDbContext<OrderDemoContext>(options =>
                                         {

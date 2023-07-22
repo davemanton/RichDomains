@@ -1,40 +1,38 @@
 ﻿using Application.Exceptions;
-using Application.Validation;
 using Client.Dtos;
 using Client.Dtos.Orders;
 using DataAccess;
 using Domain;
+using Domain.Services;
 
 namespace Application.Orders;
 
 public class OrderCreator : ICreateOrders
 {
-    private readonly IValidateOrderRequests _requestValidator;
+    private readonly IValidateOrders _orderValidator;
     private readonly IRepository<Order> _orderRepo;
     private readonly IRepository<Product> _productRepo;
     private readonly IRepository<Discount> _discountRepo;
     private readonly IUnitOfWork _unitOfWork;
 
-    public OrderCreator(IValidateOrderRequests requestValidator,
-                        IRepository<Order> orderRepo,
+    public OrderCreator(IRepository<Order> orderRepo,
                         IRepository<Product> productRepo,
                         IRepository<Discount> discountRepo,
-                        IUnitOfWork unitOfWork)
+                        IUnitOfWork unitOfWork,
+                        IValidateOrders orderValidator)
     {
-        _requestValidator = requestValidator;
+        _orderValidator = orderValidator;
 
         _orderRepo = orderRepo;
         _productRepo = productRepo;
         _discountRepo = discountRepo;
 
         _unitOfWork = unitOfWork;
+        
     }
 
     public OrderDto Create(CreateOrderRequestDto request)
     {
-        if (!_requestValidator.IsValidRequest(request, out var errors))
-            throw new ValidationException("Request failed validation", errors);
-
         var skus = request.LineItems.Select(x => x.Sku).ToList();
         var products = _productRepo.Get(x => skus.Contains(x.Sku));
 
@@ -49,11 +47,13 @@ public class OrderCreator : ICreateOrders
 
         var discount = _discountRepo.Get(x => x.Code == request.DiscountCode).SingleOrDefault();
 
-        var order = new Order(request.FirstName,
-                              request.LastName, 
-                              request.Address,
-                              discount,
-                              setLineItemInputs);
+        var order = Order.Create(request.FirstName, request.LastName, request.Address,
+                                 discount,
+                                 setLineItemInputs,
+                                 _orderValidator, out var errors);
+
+        if (order is null || errors.Any())
+            throw new ValidationException("Order request failed validation", errors);
 
         _orderRepo.Insert(order);
         _unitOfWork.Save();
