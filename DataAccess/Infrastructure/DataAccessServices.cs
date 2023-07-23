@@ -9,7 +9,12 @@ public class DataAccessServices
     public static IServiceCollection Resolve(IServiceCollection services)
     {
         services
-            .AddScoped<DbContext, OrderDemoContext>()
+            .AddScoped<DbContext, OrderDemoContext>(config =>
+                                                    {
+                                                        var context = config.GetRequiredService<OrderDemoContext>();
+                                                        context.Database.EnsureCreated();
+                                                        return context;
+                                                    })
             ;
 
         services

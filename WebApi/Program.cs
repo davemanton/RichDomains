@@ -1,3 +1,10 @@
+using Application.Infrastructure;
+using DataAccess;
+using DataAccess.Infrastructure;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,7 +14,19 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+ApplicationServices.Resolve(builder.Services);
+
+
+builder.Services.AddDbContext<OrderDemoContext>(options =>
+                                        {
+                                            options.UseSqlite(CreateInMemoryDatabase());
+                                        });
+
+DataAccessServices.Resolve(builder.Services);
+
 var app = builder.Build();
+
+//app.Services.CreateScope().ServiceProvider.GetRequiredService<OrderDemoContext>().Database.EnsureCreated();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -23,3 +42,12 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static DbConnection CreateInMemoryDatabase()
+{
+    var connection = new SqliteConnection("DataSource=file:example.sqlite");
+
+    connection.Open();
+
+    return connection;
+}

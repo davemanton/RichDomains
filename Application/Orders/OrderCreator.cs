@@ -46,6 +46,8 @@ public class OrderCreator : ICreateOrders
             FirstName = request.FirstName,
             LastName = request.LastName,
             Address = request.Address,
+            Created = DateTime.UtcNow,
+            LastModified = DateTime.UtcNow,
             LineItems = new List<LineItem>()
         };
 
@@ -56,8 +58,11 @@ public class OrderCreator : ICreateOrders
             order.LineItems.Add(new LineItem
             {
                 ProductId = product.ProductId,
-                Sku = product.Sku,
 
+                Created = DateTime.UtcNow,
+                LastModified = DateTime.UtcNow,
+
+                Sku = product.Sku,
                 Quantity = requestedItem.Quantity,
                 UnitCost = product.UnitCost,
                 TotalCost = requestedItem.Quantity * product.UnitCost,
@@ -73,13 +78,20 @@ public class OrderCreator : ICreateOrders
         return new OrderDto
         {
             OrderId = order.OrderId,
+            Created = order.Created,
+            LastModified = order.LastModified,
             FirstName = order.FirstName,
             LastName = order.LastName,
             Address = order.Address,
             DiscountCode = request.DiscountCode,
             LineItems = order.LineItems.Select(x => new LineItemDto
             {
+                ProductId = x.ProductId,
                 Sku = x.Sku,
+
+                Created = DateTime.UtcNow,
+                LastModified = DateTime.UtcNow,
+                
                 Quantity = x.Quantity,
                 UnitCost = x.UnitCost,
                 TotalCost = x.TotalCost,

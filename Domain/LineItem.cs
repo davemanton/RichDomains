@@ -5,6 +5,9 @@ public class LineItem
     public int OrderId { get; set; }
     public int ProductId { get; set; }
 
+    public DateTime Created { get; set; }
+    public DateTime LastModified { get; set; }
+
     public string Sku { get; set; } = default!;
 
     public bool IsExpired { get; set; }
@@ -15,4 +18,5 @@ public class LineItem
 
     public Order Order { get; set; } = default!;
     public Product Product { get; set; } = default!;
+    
 }

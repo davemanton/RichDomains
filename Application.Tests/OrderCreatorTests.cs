@@ -126,6 +126,32 @@ public class OrderCreatorTests
     }
 
     [Fact]
+    public void Create_ReturnsModifiedDates_InDto()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        var responseDto = contractUnderTest.Create(_request);
+
+        Assert.InRange(responseDto.Created, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
+        Assert.InRange(responseDto.LastModified, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
+    }
+
+    [Fact]
+    public void Create_StoresModifiedDates_InDatabase()
+    {
+        var contractUnderTest = GetContractUnderTest();
+
+        contractUnderTest.Create(_request);
+
+        var order = _database.ChangeTracker.Entries<Order>()
+                             .Select(x => x.Entity)
+                             .Single();
+
+        Assert.InRange(order.Created, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
+        Assert.InRange(order.LastModified, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
+    }
+
+    [Fact]
     public void Create_StoresCustomerDetails_InDatabase()
     {
         var contractUnderTest = GetContractUnderTest();
@@ -182,6 +208,9 @@ public class OrderCreatorTests
             Assert.Equal(expectedProduct.ProductId, savedLineItem.ProductId);
             Assert.Equal(expectedProduct.Sku, savedLineItem.Sku);
 
+            Assert.InRange(savedLineItem.Created, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
+            Assert.InRange(savedLineItem.LastModified, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
+
             Assert.Equal(requestedItem.Quantity, savedLineItem.Quantity);
 
             Assert.Equal(expectedProduct.UnitCost, savedLineItem.UnitCost);
@@ -205,6 +234,11 @@ public class OrderCreatorTests
             var responseLineItem = responseDto.LineItems.SingleOrDefault(x => x.Sku == requestedItem.Sku);
 
             Assert.NotNull(responseLineItem);
+
+            Assert.Equal(expectedProduct.ProductId, responseLineItem.ProductId);
+
+            Assert.InRange(responseLineItem.Created, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
+            Assert.InRange(responseLineItem.LastModified, DateTime.UtcNow.AddSeconds(-3), DateTime.UtcNow);
 
             Assert.Equal(requestedItem.Sku, responseLineItem.Sku);
             Assert.Equal(requestedItem.Quantity, responseLineItem.Quantity);

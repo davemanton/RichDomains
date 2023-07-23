@@ -256,7 +256,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Validate_IfCustomerDetailsMissing_ThrowsValidationException()
+    public void Update_Validate_IfCustomerDetailsMissing_ThrowsValidationException()
     {
         var contractUnderTest = GetContractUnderTest();
 
@@ -272,7 +272,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Validate_IfRequestDoesntContainItems_ThrowsValidationException()
+    public void Update_Validate_IfRequestDoesntContainItems_ThrowsValidationException()
     {
         var contractUnderTest = GetContractUnderTest();
 
@@ -284,7 +284,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Discount_ReturnsDiscountCode_InDto()
+    public void Update_Discount_ReturnsDiscountCode_InDto()
     {
         _request.DiscountCode = "TEST-10PERCENT";
 
@@ -298,7 +298,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Discount_SavesDiscountOnOrder_ToDatabase()
+    public void Update_Discount_SavesDiscountOnOrder_ToDatabase()
     {
         _request.DiscountCode = "TEST-10PERCENT";
 
@@ -316,7 +316,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Discount_AppliesGlobalDiscountToLineItems_ToDatabase()
+    public void Update_Discount_AppliesGlobalDiscountToLineItems_ToDatabase()
     {
         _request.DiscountCode = "TEST-10PERCENT";
 
@@ -342,7 +342,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Discount_AppliesBOGOFDiscountToLineItems_SetValueToHalfIfEven_ToDatabase()
+    public void Update_Discount_AppliesBOGOFDiscountToLineItems_SetValueToHalfIfEven_ToDatabase()
     {
         _request.DiscountCode = "TEST-BOGOF";
 
@@ -368,7 +368,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Discount_AppliesBOGOFDiscountToLineItems_SetValueToHalfIfEven_ToDto()
+    public void Update_Discount_AppliesBOGOFDiscountToLineItems_SetValueToHalfIfEven_ToDto()
     {
         _request.DiscountCode = "TEST-BOGOF";
 
@@ -390,7 +390,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Discount_AppliesBOGOFDiscountToLineItems_CalculateForEvenAmountWhenOdd_ToDatabase()
+    public void Update_Discount_AppliesBOGOFDiscountToLineItems_CalculateForEvenAmountWhenOdd_ToDatabase()
     {
         _request.DiscountCode = "TEST-BOGOF";
         _request.LineItems.First().Quantity = 3;
@@ -417,7 +417,7 @@ public class OrderUpdaterTests
     }
 
     [Fact]
-    public void Create_Discount_AppliesBOGOFDiscountToLineItems_CalculateForEvenAmountWhenOdd_ToDto()
+    public void Update_Discount_AppliesBOGOFDiscountToLineItems_CalculateForEvenAmountWhenOdd_ToDto()
     {
         _request.DiscountCode = "TEST-BOGOF";
         _request.LineItems.First().Quantity = 3;
